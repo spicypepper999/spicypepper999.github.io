@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Location Viewer</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map {
+            height: 90vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        // Firebase Database URL with Database Secret
+        const databaseURL = "https://spicypepperlocator-default-rtdb.firebaseio.com/location.json";
+
+        // Initialize the map
+        const map = L.map('map').setView([0, 0], 13);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Add a marker to show your location
+        const marker = L.circle([0, 0], {
+    color: 'red',
+    fillColor: '#f03',
+    fillOpacity: 0.5,
+    radius: 3000
+}).addTo(map);;
+
+        // Fetch location data from Firebase and update the map
+        function updateLocation() {
+    fetch(databaseURL)
+        .then(response => response.json())
+        .then(data => {
+            if (data) {
+                // Get the most recent location object
+                const latestKey = Object.keys(data).pop(); // Get the last key
+                const latestLocation = data[latestKey];
+
+                if (latestLocation.lat && latestLocation.lon) {
+                    const { lat, lon, batt } = latestLocation;
+                    map.setView([lat, lon], 13); // Center map on new location
+                    marker.setLatLng([lat, lon]); // Update marker position
+                    marker.bindPopup("spicypepper999 is currently contained within here<br><br>be prepared").openPopup();
+                } else {
+                    console.error("Invalid location data:", latestLocation);
+                }
+            } else {
+                console.error("No location data found.");
+            }
+        })
+        .catch(error => console.error("Error fetching location data:", error));
+}
+
+        // Update the map every 10 seconds
+        updateLocation();
+        //setInterval(updateLocation, 10000);
+    </script>
+</body>
+</html>
