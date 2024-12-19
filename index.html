@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,11 +8,25 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
+        html,
+        body {
+            height: 100%;
+            /* Ensure the parent containers cover the full height */
+            margin: 0;
+            padding: 0;
+        }
+
         #map {
-            height: 90vh;
+            height: 100vh;
+            /* 100% of the viewport height */
+            width: 100vw;
+            /* 100% of the viewport width */
+            margin: 0;
+            padding: 0;
         }
     </style>
 </head>
+
 <body>
     <div id="map"></div>
     <script>
@@ -26,42 +41,59 @@
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // Add a marker to show your location
-        const marker = L.circle([0, 0], {
-    color: 'red',
-    fillColor: '#f03',
-    fillOpacity: 0.5,
-    radius: 3000
-}).addTo(map);;
+        // Group for previous markers
+        const previousMarkersGroup = L.layerGroup().addTo(map);
 
         // Fetch location data from Firebase and update the map
         function updateLocation() {
-    fetch(databaseURL)
-        .then(response => response.json())
-        .then(data => {
-            if (data) {
-                // Get the most recent location object
-                const latestKey = Object.keys(data).pop(); // Get the last key
-                const latestLocation = data[latestKey];
+            fetch(databaseURL)
+                .then(response => response.json())
+                .then(data => {
+                    if (data) {
+                        // Clear old markers
+                        previousMarkersGroup.clearLayers();
 
-                if (latestLocation.lat && latestLocation.lon) {
-                    const { lat, lon, batt } = latestLocation;
-                    map.setView([lat, lon], 13); // Center map on new location
-                    marker.setLatLng([lat, lon]); // Update marker position
-                    marker.bindPopup("spicypepper999 is currently contained within here<br><br>be prepared").openPopup();
-                } else {
-                    console.error("Invalid location data:", latestLocation);
-                }
-            } else {
-                console.error("No location data found.");
-            }
-        })
-        .catch(error => console.error("Error fetching location data:", error));
-}
+                        // Iterate through all location entries
+                        Object.keys(data).forEach(key => {
+                            const location = data[key];
+                            if (location.lat && location.lon) {
+                                // Add a marker for each location
+                                const marker = L.circle([location.lat, location.lon], {
+                                    color: 'gray',
+                                    fillColor: '#00f',
+                                    fillOpacity: 0,
+                                    radius: 2000
+                                }).addTo(previousMarkersGroup);
+                            }
+                        });
 
-        // Update the map every 10 seconds
+                        // Get the most recent location object
+                        const latestKey = Object.keys(data).pop(); // Get the last key
+                        const latestLocation = data[latestKey];
+
+                        if (latestLocation.lat && latestLocation.lon) {
+                            const { lat, lon, batt } = latestLocation;
+                            map.setView([lat, lon], 13); // Center map on new location
+                            const currentMarker = L.circle([lat, lon], {
+                                color: 'red',
+                                fillColor: '#f03',
+                                fillOpacity: 0.5,
+                                radius: 3000
+                            }).addTo(map).bindPopup(
+                                `spicypepper999 is currently contained within here<br><br>Be prepared<br>Battery: ${batt || 'N/A'}%`
+                            ).openPopup();;
+                        } else {
+                            console.error("Invalid location data:", latestLocation);
+                        }
+                    } else {
+                        console.error("No location data found.");
+                    }
+                })
+                .catch(error => console.error("Error fetching location data:", error));
+        }
+
         updateLocation();
-        //setInterval(updateLocation, 10000);
     </script>
 </body>
+
 </html>
